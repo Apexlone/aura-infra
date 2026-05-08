@@ -1,0 +1,32 @@
+# Docker / Local Data
+# Não versione os dados reais do banco para não inflar o repo
+.docker-data/
+*.log
+
+# Environments / Secrets
+# Onde ficarão suas senhas do Keycloak e DB
+.env
+.env.local
+
+# Java / Maven / Gradle
+target/
+build/
+.gradle/
+.mvn/
+*.class
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+build/
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.sublime-project
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,37 @@
+services:
+  # --- BANCO DE DADOS LOCAL (Para a Aplicação Java) ---
+  db-app:
+    image: postgres:16-alpine
+    container_name: auraskill-db-app
+    restart: always
+    environment:
+      POSTGRES_USER: ${APP_DB_USER}
+      POSTGRES_PASSWORD: ${APP_DB_PASSWORD}
+      POSTGRES_DB: ${APP_DB_NAME}
+    ports:
+      - "${APP_DB_PORT}:5432"
+    volumes:
+      - ./data/app-db:/var/lib/postgresql/data
+
+  # --- SERVIÇO KEYCLOAK (Conectado ao Supabase) ---
+  keycloak:
+    image: quay.io/keycloak/keycloak:latest
+    container_name: auraskill-keycloak
+    restart: always
+    command: start-dev
+    environment:
+      # Admin do Painel
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KC_ADMIN_USER}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_ADMIN_PASSWORD}
+      
+      # Configuração do Banco Externo (Supabase)
+      KC_DB: postgres
+      KC_DB_URL: ${KC_DB_URL_SUPABASE} # Variável que vamos adicionar no .env
+      KC_DB_USERNAME: ${KC_DB_USER_SUPABASE}
+      KC_DB_PASSWORD: ${KC_DB_PASSWORD_SUPABASE}
+      
+      # Ajustes de Rede
+      KC_HOSTNAME_STRICT: "false"
+      KC_HTTP_ENABLED: "true"
+    ports:
+      - "${KC_PORT}:8080"
