@@ -12,6 +12,8 @@ services:
       - "${APP_DB_PORT}:5432"
     volumes:
       - ./data/app-db:/var/lib/postgresql/data
+    networks:
+      - auraskill-network
 
   # --- SERVIÇO KEYCLOAK (Conectado ao Supabase) ---
   keycloak:
@@ -20,18 +22,43 @@ services:
     restart: always
     command: start-dev
     environment:
-      # Admin do Painel
       KC_BOOTSTRAP_ADMIN_USERNAME: ${KC_ADMIN_USER}
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_ADMIN_PASSWORD}
-      
-      # Configuração do Banco Externo (Supabase)
       KC_DB: postgres
-      KC_DB_URL: ${KC_DB_URL_SUPABASE} # Variável que vamos adicionar no .env
+      KC_DB_URL: ${KC_DB_URL_SUPABASE}
       KC_DB_USERNAME: ${KC_DB_USER_SUPABASE}
       KC_DB_PASSWORD: ${KC_DB_PASSWORD_SUPABASE}
-      
-      # Ajustes de Rede
       KC_HOSTNAME_STRICT: "false"
       KC_HTTP_ENABLED: "true"
     ports:
       - "${KC_PORT}:8080"
+    networks:
+      - auraskill-network
+
+  # --- BACKEND API (Spring Boot) ---
+  auraskill-api:
+    image: maven:3.9-eclipse-temurin-21
+    container_name: auraskill-api
+    working_dir: /app
+    ports:
+      - "8081:8081"
+    volumes:
+      # Nota: No Portainer, verifique se o caminho relativo funciona. 
+      # Se falhar, use o caminho absoluto do WSL: /home/guiassys/devtools/repos/auraskill-api:/app
+      - ../auraskill-api:/app
+      - ~/.m2:/root/.m2
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://auraskill-db-app:5432/${APP_DB_NAME}
+      - SPRING_DATASOURCE_USERNAME=${APP_DB_USER}
+      - SPRING_DATASOURCE_PASSWORD=${APP_DB_PASSWORD}
+      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI=http://auraskill-keycloak:8080/realms/auraskill
+    command: mvn spring-boot:run
+    depends_on:
+      - db-app
+      - keycloak
+    networks:
+      - auraskill-network
+
+networks:
+  auraskill-network:
+    driver: bridge
