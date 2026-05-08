@@ -77,7 +77,8 @@ services:
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
       - WATCHPACK_POLLING=true
       - NEXT_TELEMETRY_DISABLED=1
-    command: sh -c "npm install && npx next dev --turbo=false"
+      - NEXT_TURBO=0
+    command: sh -c "npm install && npx next dev"
     depends_on:
       - keycloak
       - auraskill-api
