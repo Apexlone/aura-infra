@@ -52,7 +52,7 @@ services:
       - SPRING_DATASOURCE_USERNAME=${APP_DB_USER}
       - SPRING_DATASOURCE_PASSWORD=${APP_DB_PASSWORD}
       - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI=http://auraskill-keycloak:8080/realms/auraskill
-    command: mvn clean install -DskipTests && mvn spring-boot:run
+    command: sh -c "mvn clean install -DskipTests && mvn spring-boot:run"
     depends_on:
       - db-app
       - keycloak
