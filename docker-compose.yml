@@ -67,6 +67,7 @@ services:
     volumes:
       - /home/guiassys/devtools/repos/auraskill:/app
       - /app/node_modules
+      - /app/.next
     environment:
       - NODE_ENV=development
       - KEYCLOAK_CLIENT_ID=${KEYCLOAK_CLIENT_ID}
@@ -76,8 +77,7 @@ services:
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
       - WATCHPACK_POLLING=true
       - NEXT_TELEMETRY_DISABLED=1
-      - TURBO_ ENGINE=off
-    command: sh -c "npm install && ./node_modules/.bin/next dev"
+    command: sh -c "npm install && npx next dev --turbo=false"
     depends_on:
       - keycloak
       - auraskill-api
