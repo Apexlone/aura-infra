@@ -78,6 +78,7 @@ services:
       - WATCHPACK_POLLING=true
       - NEXT_TELEMETRY_DISABLED=1
       - NEXT_TURBO=0
+      - INTERNAL_API_URL=${INTERNAL_API_URL}
     command: sh -c "npm install && npx next dev"
     depends_on:
       - keycloak
