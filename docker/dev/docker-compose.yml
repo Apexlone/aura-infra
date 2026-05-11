@@ -1,0 +1,68 @@
+version: '3.8'
+
+services:
+
+  db-app:
+    image: postgres:16-alpine
+    container_name: auraskill-db-app-dev
+    restart: always
+    environment:
+      POSTGRES_USER: ${APP_DB_USER:-aura_user}
+      POSTGRES_PASSWORD: ${APP_DB_PASSWORD:-aura_pass}
+      POSTGRES_DB: ${APP_DB_NAME:-aura_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data_dev:/var/lib/postgresql/data
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:latest
+    container_name: auraskill-keycloak-dev
+    restart: always
+    command: start-dev
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KC_ADMIN_USER:-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_ADMIN_PASSWORD:-admin}
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://db-app:5432/keycloak
+      KC_DB_USERNAME: ${KC_DB_USER:-kc_user}
+      KC_DB_PASSWORD: ${KC_DB_PASSWORD:-kc_pass}
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db-app
+
+  aura-api:
+    image: maven:3.9-eclipse-temurin-21
+    container_name: aura-api-dev
+    working_dir: /app
+    volumes:
+      - ../../aura-api:/app
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://db-app:5432/${APP_DB_NAME:-aura_db}
+      SPRING_DATASOURCE_USERNAME: ${APP_DB_USER:-aura_user}
+      SPRING_DATASOURCE_PASSWORD: ${APP_DB_PASSWORD:-aura_pass}
+    command: mvn spring-boot:run
+    depends_on:
+      - db-app
+      - keycloak
+
+  aura-front:
+    image: node:20-alpine
+    container_name: aura-front-dev
+    working_dir: /app
+    volumes:
+      - ../../aura-front:/app
+      - /app/node_modules
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8081
+    command: npm run dev
+    depends_on:
+      - aura-api
+
+volumes:
+  postgres_data_dev:
