@@ -1,12 +1,14 @@
 # Docker / Local Data
 # Não versione os dados reais do banco para não inflar o repo
 .docker-data/
+docker/*/data/
 *.log
 
 # Environments / Secrets
 # Onde ficarão suas senhas do Keycloak e DB
-.env
-.env.local
+docker/dev/.env
+docker/hml/.env
+docker/prd/.env
 
 # Java / Maven / Gradle
 target/

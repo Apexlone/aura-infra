@@ -274,7 +274,8 @@ docker compose -f ~/devtools/repos/aura-infra/docker/hml/docker-compose.yml logs
 
 ## 🔐 Environment Variables Configuration
 
-Create a `.env` file in the root of `aura-infra`:
+Create a `.env` file in the root of `aura-infra/docker/dev`, `aura-infra/docker/hml` and `aura-infra/docker/prd`:
+
 
 ```bash
 # Database - Application
