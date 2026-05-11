@@ -1,5 +1,14 @@
 # Execution Plan — Local CI/CD with GitHub Actions + WSL + Docker
 
+## Prerequisites
+
+Before executing this task, you MUST read and use the following files as mandatory context and instruction sources:
+
+- #file:EXPERT_DEVOPS_CICD_PIPELINE_SPECIALIST.md
+- #file:COR_INSTRUCTIONS.md
+
+All analysis, decisions, implementations, and outputs must strictly follow the standards, rules, architecture principles, and execution guidelines defined in these files.
+
 ## Objective
 
 Implement a local CI/CD pipeline (On-Premise) using:

@@ -44,3 +44,4 @@ Guide of best practices for writing effective prompts designed to guide develope
 - Adapt the level of detail to the target audience
 - Provide examples of expected inputs and outputs when complex
 - Document assumptions and external dependencies
+- REQUIRED: Always ask for permission before undertaking any task.
