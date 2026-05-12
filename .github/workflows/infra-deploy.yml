@@ -1,0 +1,19 @@
+name: Infra Deploy
+
+on:
+  push:
+    branches:
+      - main
+      - hml
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout infra
+        uses: actions/checkout@v4
+
+      - name: Deploy Infra Stack
+        run: |
+          # Aqui focamos apenas nos serviços base que a infra gerencia
+          docker compose -f docker/hml/docker-compose.yml up -d db-app db-keycloak keycloak
