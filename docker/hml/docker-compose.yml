@@ -11,7 +11,8 @@ services:
     ports:
       - "${APP_DB_PORT}:5432"
     volumes:
-      - ./data/app-db:/var/lib/postgresql/data
+      # Alterado para caminho absoluto fora do repositório
+      - /home/guiassys/docker-data/aura-infra/app-db:/var/lib/postgresql/data
     networks:
       - auraskill-network
 
@@ -27,7 +28,8 @@ services:
     ports:
       - "${KC_DB_PORT}:5432"
     volumes:
-      - ./data/keycloak-db:/var/lib/postgresql/data
+      # Alterado para caminho absoluto fora do repositório
+      - /home/guiassys/docker-data/aura-infra/keycloak-db:/var/lib/postgresql/data
     networks:
       - auraskill-network
 
