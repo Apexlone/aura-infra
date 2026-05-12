@@ -8,12 +8,23 @@ on:
 
 jobs:
   deploy:
+    name: Deploy Infrastructure Base
     runs-on: self-hosted
+
     steps:
-      - name: Checkout infra
+      # Passo 1: Baixa os arquivos do repositório de infra para a pasta do Runner
+      - name: Checkout Infra Code
         uses: actions/checkout@v4
 
+      # Passo 2: Sobe apenas os serviços base (Bancos e Keycloak)
+      # Usamos o --env-file absoluto para carregar suas credenciais reais
       - name: Deploy Infra Stack
         run: |
-          # Aqui focamos apenas nos serviços base que a infra gerencia
-          docker compose -f docker/hml/docker-compose.yml up -d db-app db-keycloak keycloak
+          docker compose \
+            --env-file /home/guiassys/devtools/repos/aura-infra/docker/hml/.env \
+            -f /home/guiassys/devtools/repos/aura-infra/docker/hml/docker-compose.yml \
+            up -d db-app db-keycloak keycloak
+
+      # Passo 3: Limpeza de imagens antigas (opcional)
+      - name: Clean up
+        run: docker image prune -f
