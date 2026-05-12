@@ -90,6 +90,9 @@ The infrastructure is configured to ensure data isolation and long-term persiste
    # Create a .env file if you don't have one
    # See "Environment Variables Configuration" section below
    
+   # Stop all running containers before restarting the stack
+   docker compose -f docker/dev/docker-compose.yml down
+   
    # Start containers in development mode
    docker compose -f docker/dev/docker-compose.yml up -d
    ```
