@@ -12,15 +12,15 @@ jobs:
     runs-on: self-hosted
 
     steps:
-      # Passo 1: Checkout do código
-      # 'clean: false' evita que o Runner tente deletar arquivos que o Docker travou
+      # PASSO 1: Checkout com bloqueio de limpeza
+      # O 'clean: false' é vital para evitar o erro EACCES: permission denied
       - name: Checkout Infra Code
         uses: actions/checkout@v4
         with:
           clean: false
 
-      # Passo 2: Sobe apenas os serviços base (Bancos e Keycloak)
-      # Agora o Docker Compose usará os caminhos absolutos para persistir os dados
+      # PASSO 2: Deploy dos serviços base
+      # Usamos caminhos absolutos para evitar confusão de diretórios no Runner
       - name: Deploy Infra Stack
         run: |
           docker compose \
@@ -28,6 +28,6 @@ jobs:
             -f /home/guiassys/devtools/repos/aura-infra/docker/hml/docker-compose.yml \
             up -d db-app db-keycloak keycloak
 
-      # Passo 3: Limpeza de imagens suspensas
+      # PASSO 3: Limpeza de resíduos do Docker (Imagens órfãs)
       - name: Clean up
         run: docker image prune -f
