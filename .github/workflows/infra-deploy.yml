@@ -12,15 +12,16 @@ jobs:
     runs-on: self-hosted
 
     steps:
-      # PASSO 1: Checkout com bloqueio de limpeza
-      # O 'clean: false' é vital para evitar o erro EACCES: permission denied
+      # Este passo limpa qualquer resquício que o Git não consiga limpar sozinho
+      - name: Pre-checkout cleanup
+        run: |
+          sudo rm -rf ${{ github.workspace }}/* || true
+
       - name: Checkout Infra Code
         uses: actions/checkout@v4
         with:
           clean: false
 
-      # PASSO 2: Deploy dos serviços base
-      # Usamos caminhos absolutos para evitar confusão de diretórios no Runner
       - name: Deploy Infra Stack
         run: |
           docker compose \
@@ -28,6 +29,5 @@ jobs:
             -f /home/guiassys/devtools/repos/aura-infra/docker/hml/docker-compose.yml \
             up -d db-app db-keycloak keycloak
 
-      # PASSO 3: Limpeza de resíduos do Docker (Imagens órfãs)
       - name: Clean up
         run: docker image prune -f
