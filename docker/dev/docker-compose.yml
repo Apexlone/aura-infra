@@ -15,7 +15,23 @@ services:
     networks:
       - auraskill-network
 
-  # --- SERVIÇO KEYCLOAK (Conectado ao Supabase) ---
+  # --- BANCO DE DADOS LOCAL (Para o Keycloak) ---
+  db-keycloak:
+    image: postgres:16-alpine
+    container_name: auraskill-db-keycloak
+    restart: always
+    environment:
+      POSTGRES_USER: ${KC_DB_USER}
+      POSTGRES_PASSWORD: ${KC_DB_PASSWORD}
+      POSTGRES_DB: ${KC_DB_NAME}
+    ports:
+      - "${KC_DB_PORT}:5432"
+    volumes:
+      - ./data/keycloak-db:/var/lib/postgresql/data
+    networks:
+      - auraskill-network
+
+  # --- SERVIÇO KEYCLOAK (Conectado ao Banco Local) ---
   keycloak:
     image: quay.io/keycloak/keycloak:latest
     container_name: auraskill-keycloak
@@ -25,14 +41,16 @@ services:
       KC_BOOTSTRAP_ADMIN_USERNAME: ${KC_ADMIN_USER}
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_ADMIN_PASSWORD}
       KC_DB: postgres
-      KC_DB_URL: ${KC_DB_URL_SUPABASE}
-      KC_DB_USERNAME: ${KC_DB_USER_SUPABASE}
-      KC_DB_PASSWORD: ${KC_DB_PASSWORD_SUPABASE}
+      KC_DB_URL: ${KC_DB_URL}
+      KC_DB_USERNAME: ${KC_DB_USER}
+      KC_DB_PASSWORD: ${KC_DB_PASSWORD}
       KC_HOSTNAME_STRICT: "false"
       KC_HTTP_ENABLED: "true"
       KC_HOSTNAME_URL: http://localhost:8080
     ports:
       - "${KC_PORT}:8080"
+    depends_on:
+      - db-keycloak
     networks:
       - auraskill-network
 
@@ -50,13 +68,16 @@ services:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://auraskill-db-app:5432/${APP_DB_NAME}
       - SPRING_DATASOURCE_USERNAME=${APP_DB_USER}
       - SPRING_DATASOURCE_PASSWORD=${APP_DB_PASSWORD}
-      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI=${KEYCLOAK_ISSUER}
+      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI=http://localhost:8080/realms/auraskill
     command: sh -c "mvn clean install -DskipTests && mvn spring-boot:run"
     depends_on:
       - db-app
       - keycloak
     networks:
       - auraskill-network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+      - "localhost:host-gateway"
 
   # --- FRONTEND (Next.js) ---
   auraskill-frontend:
@@ -73,7 +94,7 @@ services:
       - NODE_ENV=development
       - KEYCLOAK_CLIENT_ID=${KEYCLOAK_CLIENT_ID}
       - KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET}
-      - KEYCLOAK_ISSUER=${KEYCLOAK_ISSUER}
+      - KEYCLOAK_ISSUER=http://localhost:8080/realms/auraskill
       - NEXTAUTH_URL=${NEXTAUTH_URL}
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
       - WATCHPACK_POLLING=true
@@ -86,6 +107,9 @@ services:
       - auraskill-api
     networks:
       - auraskill-network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+      - "localhost:host-gateway"
 
 networks:
   auraskill-network:
