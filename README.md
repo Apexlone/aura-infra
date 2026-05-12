@@ -359,7 +359,7 @@ INTERNAL_API_URL=http://auraskill-api:8081
 
 ---
 
-## 📞 Support (01)
+## 📞 Support (02)
 
 For more information:
 - 📖 Project documentation: See `aiprompts/tasks/001__create_CICD_pipeline.md`
