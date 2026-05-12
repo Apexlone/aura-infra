@@ -35,3 +35,5 @@ Thumbs.db
 
 # Plugins / Tools
 .ollamassist/
+/aiprompts/assets/auraskill-api.json
+/aiprompts/assets/auraskill-frontend.json
