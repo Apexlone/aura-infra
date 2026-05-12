@@ -12,12 +12,15 @@ jobs:
     runs-on: self-hosted
 
     steps:
-      # Passo 1: Baixa os arquivos do repositório de infra para a pasta do Runner
+      # Passo 1: Checkout do código
+      # 'clean: false' evita que o Runner tente deletar arquivos que o Docker travou
       - name: Checkout Infra Code
         uses: actions/checkout@v4
+        with:
+          clean: false
 
       # Passo 2: Sobe apenas os serviços base (Bancos e Keycloak)
-      # Usamos o --env-file absoluto para carregar suas credenciais reais
+      # Agora o Docker Compose usará os caminhos absolutos para persistir os dados
       - name: Deploy Infra Stack
         run: |
           docker compose \
@@ -25,6 +28,6 @@ jobs:
             -f /home/guiassys/devtools/repos/aura-infra/docker/hml/docker-compose.yml \
             up -d db-app db-keycloak keycloak
 
-      # Passo 3: Limpeza de imagens antigas (opcional)
+      # Passo 3: Limpeza de imagens suspensas
       - name: Clean up
         run: docker image prune -f
