@@ -106,3 +106,6 @@ For system design patterns, OIDC flows, and API specifications, please visit the
 Apexlone Documentation (aura-doc) at https://github.com/Apexlone/aura-doc
 
 Maintained by Apexlone Organization.
+
+## Test pipeline
+- 01 - Forcing github actions
