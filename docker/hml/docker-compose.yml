@@ -11,7 +11,6 @@ services:
     ports:
       - "${APP_DB_PORT}:5432"
     volumes:
-      # Alterado para caminho absoluto fora do repositório
       - /home/guiassys/docker-data/aura-infra/app-db:/var/lib/postgresql/data
     networks:
       - auraskill-network
@@ -28,7 +27,6 @@ services:
     ports:
       - "${KC_DB_PORT}:5432"
     volumes:
-      # Alterado para caminho absoluto fora do repositório
       - /home/guiassys/docker-data/aura-infra/keycloak-db:/var/lib/postgresql/data
     networks:
       - auraskill-network
@@ -56,10 +54,10 @@ services:
     networks:
       - auraskill-network
 
-  # --- BACKEND API (Spring Boot - Usando Dockerfile) ---
+  # --- BACKEND API (Spring Boot) ---
   auraskill-api:
     build:
-      context: .
+      context: ${AURA_API_PATH:-.}
       dockerfile: Dockerfile
     container_name: auraskill-api
     restart: always
@@ -85,10 +83,10 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
-  # --- FRONTEND (Next.js - Usando Dockerfile) ---
+  # --- FRONTEND (Next.js) ---
   auraskill-frontend:
     build:
-      context: .
+      context: ${AURA_FRONT_PATH:-.}
       dockerfile: Dockerfile
     container_name: auraskill-frontend
     restart: always
