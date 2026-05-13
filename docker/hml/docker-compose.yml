@@ -57,7 +57,7 @@ services:
   # --- BACKEND API (Spring Boot) ---
   auraskill-api:
     build:
-      context: ${AURA_API_PATH:-.}
+      context: ${AURA_API_PATH}
       dockerfile: Dockerfile
     container_name: auraskill-api
     restart: always
@@ -86,7 +86,7 @@ services:
   # --- FRONTEND (Next.js) ---
   auraskill-frontend:
     build:
-      context: ${AURA_FRONT_PATH:-.}
+      context: ${AURA_FRONT_PATH}
       dockerfile: Dockerfile
     container_name: auraskill-frontend
     restart: always
