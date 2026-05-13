@@ -4,7 +4,6 @@ on:
   push:
     branches:
       - main
-      - hml
 
 jobs:
   deploy:
@@ -12,22 +11,27 @@ jobs:
     runs-on: self-hosted
 
     steps:
-      # Este passo limpa qualquer resquício que o Git não consiga limpar sozinho
+      # Passo 1: Limpeza para garantir um ambiente novo no workspace do Runner
       - name: Pre-checkout cleanup
         run: |
           sudo rm -rf ${{ github.workspace }}/* || true
 
+      # Passo 2: Checkout do repositório aura-infra (Branch main)
       - name: Checkout Infra Code
         uses: actions/checkout@v4
         with:
-          clean: false
+          ref: main
 
+      # Passo 3: Deploy da Infraestrutura
       - name: Deploy Infra Stack
         run: |
           docker compose \
             --env-file /home/guiassys/devtools/repos/aura-infra/docker/hml/.env \
-            -f /home/guiassys/devtools/repos/aura-infra/docker/hml/docker-compose.yml \
+            -f ${{ github.workspace }}/docker/hml/docker-compose.yml \
             up -d db-app db-keycloak keycloak
 
+      # Passo 4: Limpeza de imagens e builders órfãos para economizar espaço
       - name: Clean up
-        run: docker image prune -f
+        run: |
+          docker image prune -f
+          docker builder prune -f
