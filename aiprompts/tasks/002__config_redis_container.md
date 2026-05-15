@@ -32,7 +32,7 @@ Add Redis configuration before `# --- BACKEND (SPRING BOOT) ---` section:
 # --- REDIS CACHE SERVER ---
 REDIS_HOST=auraskill-redis
 REDIS_PORT=6379
-REDIS_PASSWORD=redis_secure_password_hml
+REDIS_PASSWORD=<password_seguro>
 REDIS_DB=0
 REDIS_TIMEOUT=60000
 REDIS_MAX_RETRIES=3
@@ -89,17 +89,42 @@ depends_on:
 
 - ✅ Redis container starts without errors
 - ✅ Healthcheck passes
-- ✅ API connects to Redis successfully
-- ✅ Data persists after container restart
-- ✅ No critical errors in logs
+# Execution Plan — Redis (HML)
+
+## Prerequisites
+
+- Docker and Docker Compose installed and running
+- Access to the `aura-infra` repository
+- Basic knowledge of Redis and environment variables
+
+**References:**
+- #file:EXPERT_DEVOPS_CICD_PIPELINE_SPECIALIST.md
+- #file:COR_INSTRUCTIONS.md
+
+## Objective
+
+Bring Redis into the HML docker-compose stack as a cache server using the same host-mounted data pattern used by the database services.
+
+Key requirements:
+- Integrate with `auraskill-network`
+- Be reachable by `auraskill-api` and `auraskill-frontend`
+- Persist data to host path `/home/guiassys/docker-data/aura-infra/redis-data`
+- Provide password authentication and a healthcheck
+- Align `auraskill-api` environment with Redis connection vars
+
+---
+
+## Success Criteria
+
+- Redis container starts and passes its healthcheck
+- `auraskill-api` connects to Redis using the configured SPRING_DATA_REDIS_* variables
+- Redis data is persisted under `/home/guiassys/docker-data/aura-infra/redis-data`
 
 ---
 
 ## Best Practices Applied
 
-- Infrastructure as Code (version-controlled configuration)
-- Container Orchestration (Docker Compose with health checks)
-- Security (password authentication, network isolation)
-- Persistence (absolute volume paths for explicit data management)
-- Observability (health checks and logging)
-- Standardization (consistent with db-app and db-keycloak patterns)
+- Consistency with existing host-mounted data directories
+- Password-protected Redis and healthchecks
+- Clear application environment variables for runtime connectivity
+- CI/CD alignment: predictable host paths for backups and operations
