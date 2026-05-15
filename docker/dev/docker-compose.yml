@@ -1,5 +1,5 @@
 services:
-  # --- BANCO DE DADOS LOCAL (Para a Aplicação Java) ---
+  # --- BANCO DE DADOS (Para a Aplicação Java) ---
   db-app:
     image: postgres:16-alpine
     container_name: auraskill-db-app
@@ -11,11 +11,11 @@ services:
     ports:
       - "${APP_DB_PORT}:5432"
     volumes:
-      - ./data/app-db:/var/lib/postgresql/data
+      - /home/guiassys/docker-data/aura-infra/app-db:/var/lib/postgresql/data
     networks:
       - auraskill-network
 
-  # --- BANCO DE DADOS LOCAL (Para o Keycloak) ---
+  # --- BANCO DE DADOS (Para o Keycloak) ---
   db-keycloak:
     image: postgres:16-alpine
     container_name: auraskill-db-keycloak
@@ -27,11 +27,11 @@ services:
     ports:
       - "${KC_DB_PORT}:5432"
     volumes:
-      - ./data/keycloak-db:/var/lib/postgresql/data
+      - /home/guiassys/docker-data/aura-infra/keycloak-db:/var/lib/postgresql/data
     networks:
       - auraskill-network
 
-  # --- SERVIÇO KEYCLOAK (Conectado ao Banco Local) ---
+  # --- SERVIÇO KEYCLOAK ---
   keycloak:
     image: quay.io/keycloak/keycloak:latest
     container_name: auraskill-keycloak
@@ -56,14 +56,13 @@ services:
 
   # --- BACKEND API (Spring Boot) ---
   auraskill-api:
-    image: maven:3.9-eclipse-temurin-21
+    build:
+      context: ${AURA_API_PATH}
+      dockerfile: Dockerfile
     container_name: auraskill-api
-    working_dir: /app
+    restart: always
     ports:
       - "8081:8081"
-    volumes:
-      - /home/guiassys/devtools/repos/aura-api:/app
-      - ~/.m2:/root/.m2
     environment:
       - SPRING_APPLICATION_NAME=${SPRING_APPLICATION_NAME}
       - SERVER_PORT=${API_PORT}
@@ -76,7 +75,6 @@ services:
       - SPRING_JPA_PROPERTIES_HIBERNATE_FORMAT_SQL=${SPRING_JPA_PROPERTIES_HIBERNATE_FORMAT_SQL}
       - SPRING_FLYWAY_ENABLED=${SPRING_FLYWAY_ENABLED}
       - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI=${KEYCLOAK_ISSUER_URI}
-    command: sh -c "mvn clean install -DskipTests && mvn spring-boot:run"
     depends_on:
       - db-app
       - keycloak
@@ -84,19 +82,16 @@ services:
       - auraskill-network
     extra_hosts:
       - "host.docker.internal:host-gateway"
-      - "localhost:host-gateway"
 
   # --- FRONTEND (Next.js) ---
   auraskill-frontend:
-    image: node:20-alpine
+    build:
+      context: ${AURA_FRONT_PATH}
+      dockerfile: Dockerfile
     container_name: auraskill-frontend
-    working_dir: /app
+    restart: always
     ports:
       - "3000:3000"
-    volumes:
-      - /home/guiassys/devtools/repos/aura-front:/app
-      - /app/node_modules
-      - /app/.next
     environment:
       - NODE_ENV=development
       - KEYCLOAK_CLIENT_ID=${KEYCLOAK_CLIENT_ID}
@@ -104,11 +99,7 @@ services:
       - KEYCLOAK_ISSUER=${KEYCLOAK_ISSUER_URI}
       - NEXTAUTH_URL=${NEXTAUTH_URL}
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
-      - WATCHPACK_POLLING=true
-      - NEXT_TELEMETRY_DISABLED=1
-      - NEXT_TURBO=0
       - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
-    command: sh -c "npm install && npx next dev"
     depends_on:
       - keycloak
       - auraskill-api
@@ -116,7 +107,6 @@ services:
       - auraskill-network
     extra_hosts:
       - "host.docker.internal:host-gateway"
-      - "localhost:host-gateway"
 
 networks:
   auraskill-network:

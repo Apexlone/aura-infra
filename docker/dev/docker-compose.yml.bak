@@ -1,0 +1,113 @@
+services:
+  # --- BANCO DE DADOS LOCAL (Para a Aplicação Java) ---
+  db-app:
+    image: postgres:16-alpine
+    container_name: auraskill-db-app
+    restart: always
+    environment:
+      POSTGRES_USER: ${APP_DB_USER}
+      POSTGRES_PASSWORD: ${APP_DB_PASSWORD}
+      POSTGRES_DB: ${APP_DB_NAME}
+    ports:
+      - "${APP_DB_PORT}:5432"
+    volumes:
+      - /home/guiassys/docker-data/aura-infra/app-db:/var/lib/postgresql/data
+    networks:
+      - auraskill-network
+
+  # --- BANCO DE DADOS LOCAL (Para o Keycloak) ---
+  db-keycloak:
+    image: postgres:16-alpine
+    container_name: auraskill-db-keycloak
+    restart: always
+    environment:
+      POSTGRES_USER: ${KC_DB_USER}
+      POSTGRES_PASSWORD: ${KC_DB_PASSWORD}
+      POSTGRES_DB: ${KC_DB_NAME}
+    ports:
+      - "${KC_DB_PORT}:5432"
+    volumes:
+      - /home/guiassys/docker-data/aura-infra/keycloak-db:/var/lib/postgresql/data
+    networks:
+      - auraskill-network
+
+  # --- SERVIÇO KEYCLOAK (Conectado ao Banco Local) ---
+  keycloak:
+    image: quay.io/keycloak/keycloak:latest
+    container_name: auraskill-keycloak
+    restart: always
+    command: start-dev
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KC_ADMIN_USER}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KC_ADMIN_PASSWORD}
+      KC_DB: postgres
+      KC_DB_URL: ${KC_DB_URL}
+      KC_DB_USERNAME: ${KC_DB_USER}
+      KC_DB_PASSWORD: ${KC_DB_PASSWORD}
+      KC_HOSTNAME_STRICT: "false"
+      KC_HTTP_ENABLED: "true"
+      KC_HOSTNAME_URL: ${KC_HOSTNAME_URL}
+    ports:
+      - "${KC_PORT}:8080"
+    depends_on:
+      - db-keycloak
+    networks:
+      - auraskill-network
+
+  # --- BACKEND API (Spring Boot) ---
+  auraskill-api:
+    build:
+      context: ${AURA_API_PATH}
+      dockerfile: Dockerfile
+    container_name: auraskill-api
+    restart: always
+    ports:
+      - "8081:8081"
+    environment:
+      - SPRING_APPLICATION_NAME=${SPRING_APPLICATION_NAME}
+      - SERVER_PORT=${API_PORT}
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://auraskill-db-app:5432/${APP_DB_NAME}
+      - SPRING_DATASOURCE_USERNAME=${APP_DB_USER}
+      - SPRING_DATASOURCE_PASSWORD=${APP_DB_PASSWORD}
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=${SPRING_JPA_HIBERNATE_DDL_AUTO}
+      - SPRING_JPA_OPEN_IN_VIEW=${SPRING_JPA_OPEN_IN_VIEW}
+      - SPRING_JPA_SHOW_SQL=${SPRING_JPA_SHOW_SQL}
+      - SPRING_JPA_PROPERTIES_HIBERNATE_FORMAT_SQL=${SPRING_JPA_PROPERTIES_HIBERNATE_FORMAT_SQL}
+      - SPRING_FLYWAY_ENABLED=${SPRING_FLYWAY_ENABLED}
+      - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI=${KEYCLOAK_ISSUER_URI}
+    depends_on:
+      - db-app
+      - keycloak
+    networks:
+      - auraskill-network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  # --- FRONTEND (Next.js) ---
+  auraskill-frontend:
+    build:
+      context: ${AURA_FRONT_PATH}
+      dockerfile: Dockerfile
+    container_name: auraskill-frontend
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - KEYCLOAK_CLIENT_ID=${KEYCLOAK_CLIENT_ID}
+      - KEYCLOAK_CLIENT_SECRET=${KEYCLOAK_CLIENT_SECRET}
+      - KEYCLOAK_ISSUER=${KEYCLOAK_ISSUER_URI}
+      - NEXTAUTH_URL=${NEXTAUTH_URL}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+    depends_on:
+      - keycloak
+      - auraskill-api
+    networks:
+      - auraskill-network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+networks:
+  auraskill-network:
+    driver: bridge

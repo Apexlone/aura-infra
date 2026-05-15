@@ -1,5 +1,5 @@
 services:
-  # --- BANCO DE DADOS LOCAL (Para a Aplicação Java) ---
+  # --- BANCO DE DADOS (Para a Aplicação Java) ---
   db-app:
     image: postgres:16-alpine
     container_name: auraskill-db-app
@@ -15,7 +15,7 @@ services:
     networks:
       - auraskill-network
 
-  # --- BANCO DE DADOS LOCAL (Para o Keycloak) ---
+  # --- BANCO DE DADOS (Para o Keycloak) ---
   db-keycloak:
     image: postgres:16-alpine
     container_name: auraskill-db-keycloak
