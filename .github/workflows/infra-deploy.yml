@@ -17,23 +17,15 @@ jobs:
         with:
           ref: main
 
-      # Passo 2: Checkout aura-eureka repository
-      - name: Checkout aura-eureka repository
-        uses: actions/checkout@v4
-        with:
-          repository: Apexlone/aura-eureka
-          path: aura-eureka
-          ref: main
-
-      # Passo 3: Deploy da Infraestrutura
+      # Passo 2: Deploy da Infraestrutura Base
       - name: Deploy Infra Stack
         run: |
           docker compose \
             --env-file /home/guiassys/devtools/repos/aura-infra/docker/hml/.env \
             -f ${{ github.workspace }}/docker/hml/docker-compose.yml \
-            up -d db-app db-keycloak keycloak auraskill-redis aura-eureka
+            up -d db-app db-keycloak keycloak auraskill-redis
 
-      # Passo 4: Limpeza de imagens e builders órfãos para economizar espaço
+      # Passo 3: Limpeza de imagens e builders órfãos para economizar espaço
       - name: Clean up
         run: |
           docker image prune -f

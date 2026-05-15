@@ -159,9 +159,12 @@ services:
       - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://auraskill-eureka:${EUREKA_PORT}/eureka
     depends_on:
-      - keycloak
-      - auraskill-api
-      - aura-eureka
+      keycloak:
+        condition: service_started
+      auraskill-api:
+        condition: service_started
+      aura-eureka:
+        condition: service_healthy
     networks:
       - auraskill-network
     extra_hosts:
