@@ -11,15 +11,18 @@ jobs:
     runs-on: self-hosted
 
     steps:
-      # Passo 1: Limpeza para garantir um ambiente novo no workspace do Runner
-      - name: Pre-checkout cleanup
-        run: |
-          sudo rm -rf ${{ github.workspace }}/* || true
-
-      # Passo 2: Checkout do repositório aura-infra (Branch main)
+      # Passo 1: Checkout do repositório aura-infra (Branch main)
       - name: Checkout Infra Code
         uses: actions/checkout@v4
         with:
+          ref: main
+
+      # Passo 2: Checkout aura-eureka repository
+      - name: Checkout aura-eureka repository
+        uses: actions/checkout@v4
+        with:
+          repository: Apexlone/aura-eureka
+          path: aura-eureka
           ref: main
 
       # Passo 3: Deploy da Infraestrutura
@@ -28,7 +31,7 @@ jobs:
           docker compose \
             --env-file /home/guiassys/devtools/repos/aura-infra/docker/hml/.env \
             -f ${{ github.workspace }}/docker/hml/docker-compose.yml \
-            up -d db-app db-keycloak keycloak auraskill-redis
+            up -d db-app db-keycloak keycloak auraskill-redis aura-eureka
 
       # Passo 4: Limpeza de imagens e builders órfãos para economizar espaço
       - name: Clean up

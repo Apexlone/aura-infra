@@ -45,3 +45,4 @@ Guide of best practices for writing effective prompts designed to guide develope
 - Provide examples of expected inputs and outputs when complex
 - Document assumptions and external dependencies
 - REQUIRED: Always ask for permission before undertaking any task.
+- REQUIRED: Use English language for all

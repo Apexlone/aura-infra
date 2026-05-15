@@ -73,6 +73,34 @@ services:
       retries: 5
       start_period: 10s
 
+  # --- EUREKA SERVER ---
+  aura-eureka:
+    build:
+      context: ${AURA_EUREKA_PATH}
+      dockerfile: Dockerfile
+    container_name: auraskill-eureka
+    restart: always
+    ports:
+      - "${EUREKA_PORT}:${EUREKA_PORT}"
+    environment:
+      - SPRING_APPLICATION_NAME=${EUREKA_APP_NAME}
+      - SERVER_PORT=${EUREKA_PORT}
+      - MANAGEMENT_ENDPOINT_HEALTH_SHOWDETAILS=always
+      - spring.cloud.discovery.enabled=true
+      - eureka.client.register-with-eureka=false
+      - eureka.client.fetch-registry=false
+      - server.address=0.0.0.0
+    networks:
+      - auraskill-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:${EUREKA_PORT}${EUREKA_HEALTH_ENDPOINT} || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
   # --- BACKEND API (Spring Boot) ---
   auraskill-api:
     build:
@@ -97,12 +125,15 @@ services:
       - SPRING_DATA_REDIS_HOST=${REDIS_HOST}
       - SPRING_DATA_REDIS_PORT=${REDIS_PORT}
       - SPRING_DATA_REDIS_PASSWORD=${REDIS_PASSWORD}
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://auraskill-eureka:${EUREKA_PORT}/eureka
     depends_on:
       db-app:
         condition: service_started
       keycloak:
         condition: service_started
       auraskill-redis:
+        condition: service_healthy
+      aura-eureka:
         condition: service_healthy
     networks:
       - auraskill-network
@@ -126,9 +157,11 @@ services:
       - NEXTAUTH_URL=${NEXTAUTH_URL}
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
       - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://auraskill-eureka:${EUREKA_PORT}/eureka
     depends_on:
       - keycloak
       - auraskill-api
+      - aura-eureka
     networks:
       - auraskill-network
     extra_hosts:
