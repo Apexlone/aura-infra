@@ -28,7 +28,7 @@ jobs:
           docker compose \
             --env-file /home/guiassys/devtools/repos/aura-infra/docker/hml/.env \
             -f ${{ github.workspace }}/docker/hml/docker-compose.yml \
-            up -d db-app db-keycloak keycloak
+            up -d db-app db-keycloak keycloak auraskill-redis
 
       # Passo 4: Limpeza de imagens e builders órfãos para economizar espaço
       - name: Clean up

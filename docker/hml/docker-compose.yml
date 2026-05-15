@@ -67,7 +67,7 @@ services:
     networks:
       - auraskill-network
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      test: ["CMD-SHELL", "redis-cli --no-auth-warning -a \"${REDIS_PASSWORD}\" ping | grep PONG"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -94,10 +94,16 @@ services:
       - SPRING_JPA_PROPERTIES_HIBERNATE_FORMAT_SQL=${SPRING_JPA_PROPERTIES_HIBERNATE_FORMAT_SQL}
       - SPRING_FLYWAY_ENABLED=${SPRING_FLYWAY_ENABLED}
       - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI=${KEYCLOAK_ISSUER_URI}
+      - SPRING_DATA_REDIS_HOST=${REDIS_HOST}
+      - SPRING_DATA_REDIS_PORT=${REDIS_PORT}
+      - SPRING_DATA_REDIS_PASSWORD=${REDIS_PASSWORD}
     depends_on:
-      - db-app
-      - keycloak
-      - auraskill-redis
+      db-app:
+        condition: service_started
+      keycloak:
+        condition: service_started
+      auraskill-redis:
+        condition: service_healthy
     networks:
       - auraskill-network
     extra_hosts:
@@ -131,4 +137,3 @@ services:
 networks:
   auraskill-network:
     driver: bridge
-
