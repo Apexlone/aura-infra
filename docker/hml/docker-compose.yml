@@ -101,6 +101,34 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
+  # --- API GATEWAY ---
+  aura-gateway:
+    build:
+      context: ${AURA_GATEWAY_PATH}
+      dockerfile: Dockerfile
+    container_name: auraskill-gateway
+    restart: always
+    ports:
+      - "${GATEWAY_PORT}:8085"
+    environment:
+      - SPRING_APPLICATION_NAME=aura-gateway
+      - SERVER_PORT=8085
+      - MANAGEMENT_ENDPOINT_HEALTH_SHOWDETAILS=always
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://auraskill-eureka:${EUREKA_PORT}/eureka
+    depends_on:
+      aura-eureka:
+        condition: service_healthy
+    networks:
+      - auraskill-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8085/actuator/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
   # --- BACKEND API (Spring Boot) ---
   auraskill-api:
     build:
