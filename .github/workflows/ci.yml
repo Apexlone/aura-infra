@@ -40,12 +40,12 @@ jobs:
           cat docker/hml/.env
         working-directory: ${{ github.workspace }}
 
-      # Passo 3: Deploy da Infraestrutura Base
+      # Passo 3: Deploy da Infraestrutura Base (Incluindo os containers do Sonar)
       - name: Deploy Infra Stack
         run: |
           docker compose \
             -f docker/hml/docker-compose.yml \
-            up -d db-app db-keycloak keycloak auraskill-redis
+            up -d db-app db-keycloak keycloak auraskill-redis db-sonarqube sonarqube
         # O docker-compose.yml agora tem a diretiva 'env_file' para carregar .env e secrets.env
         # e o Docker Compose irá procurá-los em 'docker/hml/' (relativo ao compose file).
         # O working-directory padrão é ${{ github.workspace }}, então o caminho para o compose file é correto.
