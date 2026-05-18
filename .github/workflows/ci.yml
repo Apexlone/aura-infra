@@ -1,0 +1,46 @@
+name: Infra Deploy
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    name: Deploy Infrastructure Base
+    runs-on: self-hosted
+
+    steps:
+      # Passo 1: Checkout do repositório aura-infra (Branch main)
+      - name: Checkout Infra Code
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      # Passo 2: Criar o arquivo secrets.env dinamicamente com os GitHub Secrets
+      - name: Create secrets.env file
+        run: |
+          echo "KC_DB_PASSWORD=${{ secrets.KC_DB_PASSWORD }}" >> docker/hml/secrets.env
+          echo "KC_ADMIN_PASSWORD=${{ secrets.KC_ADMIN_PASSWORD }}" >> docker/hml/secrets.env
+          echo "APP_DB_PASSWORD=${{ secrets.APP_DB_PASSWORD }}" >> docker/hml/secrets.env
+          echo "REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}" >> docker/hml/secrets.env
+          echo "KEYCLOAK_CLIENT_SECRET=${{ secrets.KEYCLOAK_CLIENT_SECRET }}" >> docker/hml/secrets.env
+          echo "NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET }}" >> docker/hml/secrets.env
+
+      # Passo 3: Deploy da Infraestrutura Base
+      - name: Deploy Infra Stack
+        run: |
+          docker compose \
+            -f docker/hml/docker-compose.yml \
+            up -d db-app db-keycloak keycloak auraskill-redis
+
+      # Passo 4: Limpeza do arquivo secrets.env temporário
+      - name: Clean up secrets.env file
+        if: always()
+        run: rm docker/hml/secrets.env
+
+      # Passo 5: Limpeza de imagens e builders órfãos para economizar espaço
+      - name: Clean up Docker resources
+        run: |
+          docker image prune -f
+          docker builder prune -f

@@ -37,3 +37,6 @@ Thumbs.db
 .ollamassist/
 /aiprompts/assets/auraskill-api.json
 /aiprompts/assets/auraskill-frontend.json
+/docker/hml/secrets.env
+/docker/dev/secrets.env
+/docker/prd/secrets.env

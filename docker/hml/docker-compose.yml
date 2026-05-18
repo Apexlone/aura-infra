@@ -1,3 +1,9 @@
+version: '3.8'
+
+env_file:
+  - .env
+  - secrets.env
+
 services:
   # --- BANCO DE DADOS (Para a Aplicação Java) ---
   db-app:

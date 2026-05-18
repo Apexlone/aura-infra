@@ -61,27 +61,46 @@ To allow the runner to execute jobs for public repositories in the Apexlone orga
 
 ---
 
-## Environment Variables (.env)
+## Environment Variables (.env and secrets.env)
 
-Create a .env file in docker/hml/ and docker/dev/ based on the following template:
+To manage environment variables and secrets securely, the project now uses two separate files:
+- `.env`: For non-sensitive configuration variables.
+- `secrets.env`: For sensitive information like passwords and API keys.
+
+Both files should be created in `docker/hml/` and `docker/dev/` based on the templates below. **Ensure `secrets.env` is properly secured and not committed to version control.**
+
+### Template for `.env` (Non-sensitive variables)
 ```
 # DATABASE CONFIG:
 APP_DB_USER=postgres
-APP_DB_PASSWORD=secure_password_here
 APP_DB_NAME=auraskill
 
 # KEYCLOAK CONFIG:
 KC_DB_URL=jdbc:postgresql://auraskill-db-keycloak:5432/keycloak
 KC_DB_USERNAME=postgres
-KC_DB_PASSWORD=secure_password_here
 KC_HOSTNAME=localhost
 KC_ADMIN_USER=admin
-KC_ADMIN_PASSWORD=admin_password
 
 # FRONTEND CONFIG (NextAuth):
-NEXTAUTH_SECRET=your_secret_here
 NEXT_PUBLIC_API_URL=http://localhost:8081
 NEXT_PUBLIC_KEYCLOAK_ISSUER=http://localhost:8080/realms/auraskill
+```
+
+### Template for `secrets.env` (Sensitive variables - DO NOT COMMIT!)
+```
+# DATABASE SECRETS:
+APP_DB_PASSWORD=secure_app_password_here
+
+# KEYCLOAK SECRETS:
+KC_DB_PASSWORD=secure_keycloak_db_password_here
+KC_ADMIN_PASSWORD=secure_keycloak_admin_password_here
+
+# REDIS SECRETS:
+REDIS_PASSWORD=redis_secure_password_here
+
+# FRONTEND SECRETS (NextAuth):
+NEXTAUTH_SECRET=your_long_and_stable_secret_here
+KEYCLOAK_CLIENT_SECRET=your_keycloak_client_secret_here
 ```
 ---
 
