@@ -26,6 +26,17 @@ jobs:
           echo "REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}" >> docker/hml/secrets.env
           echo "KEYCLOAK_CLIENT_SECRET=${{ secrets.KEYCLOAK_CLIENT_SECRET }}" >> docker/hml/secrets.env
           echo "NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET }}" >> docker/hml/secrets.env
+        # O working-directory padrão para 'run' é ${{ github.workspace }}
+        # então o caminho 'docker/hml/secrets.env' é relativo à raiz do repositório.
+
+      # Passo de Depuração: Verificar o arquivo .env
+      - name: Debug .env file
+        run: |
+          echo "Listing contents of docker/hml/:"
+          ls -la docker/hml/
+          echo "Content of docker/hml/.env:"
+          cat docker/hml/.env
+        working-directory: ${{ github.workspace }}
 
       # Passo 3: Deploy da Infraestrutura Base
       - name: Deploy Infra Stack
@@ -33,11 +44,15 @@ jobs:
           docker compose \
             -f docker/hml/docker-compose.yml \
             up -d db-app db-keycloak keycloak auraskill-redis
+        # O docker-compose.yml agora tem a diretiva 'env_file' para carregar .env e secrets.env
+        # e o Docker Compose irá procurá-los em 'docker/hml/' (relativo ao compose file).
+        # O working-directory padrão é ${{ github.workspace }}, então o caminho para o compose file é correto.
 
       # Passo 4: Limpeza do arquivo secrets.env temporário
       - name: Clean up secrets.env file
-        if: always()
+        if: always() # Garante que este passo seja executado mesmo se os anteriores falharem
         run: rm docker/hml/secrets.env
+        # O working-directory padrão para 'run' é ${{ github.workspace }}
 
       # Passo 5: Limpeza de imagens e builders órfãos para economizar espaço
       - name: Clean up Docker resources
