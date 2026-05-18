@@ -26,6 +26,8 @@ jobs:
           echo "REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}" >> docker/hml/secrets.env
           echo "KEYCLOAK_CLIENT_SECRET=${{ secrets.KEYCLOAK_CLIENT_SECRET }}" >> docker/hml/secrets.env
           echo "NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET }}" >> docker/hml/secrets.env
+          echo "SONAR_DB_PASSWORD=${{ secrets.SONAR_DB_PASSWORD }}" >> docker/hml/secrets.env
+
         # O working-directory padrão para 'run' é ${{ github.workspace }}
         # então o caminho 'docker/hml/secrets.env' é relativo à raiz do repositório.
 
