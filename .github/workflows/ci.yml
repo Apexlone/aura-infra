@@ -5,7 +5,7 @@ on:
     branches:
       - dev
       - hml
-      - main # Incluído main para disparar o deploy de PRD
+      - main
       - prd
   workflow_dispatch:
     inputs:
@@ -78,7 +78,7 @@ jobs:
           cat docker/${{ env.ENVIRONMENT }}/.env
         working-directory: ${{ github.workspace }}
 
-      # NOVO PASSO: Derrubar a infraestrutura anterior do ambiente
+      # Derrubar a infraestrutura anterior do ambiente
       - name: Tear Down Previous Infra Stack
         run: |
           docker compose \
@@ -86,7 +86,7 @@ jobs:
             --env-file docker/${{ env.ENVIRONMENT }}/secrets.env \
             -f docker/${{ env.ENVIRONMENT }}/docker-compose.yml \
             down --remove-orphans
-        continue-on-error: true # Permite que o workflow continue mesmo se não houver containers para derrubar
+        continue-on-error: true
 
       # Passo 3: Deploy da Infraestrutura Base
       - name: Deploy Infra Stack
