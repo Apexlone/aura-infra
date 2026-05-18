@@ -184,11 +184,11 @@ services:
     command: server /data --console-address ":${MINIO_CONSOLE_INTERNAL_PORT}"
     entrypoint: >
       sh -c "
-      minio server /data --console-address ':9001' &
-      MINIO_PID=\$!
-      until curl -s http://localhost:9000/minio/health/live; do sleep 1; done
-      mkdir -p /data/${MINIO_DEFAULT_BUCKETS}
-      wait \$MINIO_PID
+      minio server /data --console-address ':${MINIO_CONSOLE_INTERNAL_PORT}' & 
+      MINIO_PID=\$!; 
+      while ! curl -s http://localhost:${MINIO_INTERNAL_PORT}/minio/health/live; do sleep 1; done; 
+      mkdir -p /data/${MINIO_DEFAULT_BUCKETS}; 
+      wait \$MINIO_PID;
       "
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:${MINIO_INTERNAL_PORT}/minio/health/live || exit 1"]
