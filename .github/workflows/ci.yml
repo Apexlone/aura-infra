@@ -3,10 +3,10 @@ name: Infra Deploy
 on:
   push:
     branches:
-      - main
       - dev
       - hml
-      - prd # Adicionado os branches para disparar no push
+      - main # Incluído main para disparar o deploy de PRD
+      - prd
   workflow_dispatch:
     inputs:
       environment:
@@ -29,10 +29,8 @@ jobs:
       - name: Determine Environment
         id: set_environment
         run: |
-          # Se o workflow foi disparado manualmente, use o input do usuário
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             echo "ENVIRONMENT=${{ github.event.inputs.environment }}" >> "$GITHUB_ENV"
-          # Se foi disparado por push, determine o ambiente pelo nome do branch
           else
             case "${{ github.ref_name }}" in
               "dev")
@@ -41,26 +39,25 @@ jobs:
               "hml")
                 echo "ENVIRONMENT=hml" >> "$GITHUB_ENV"
                 ;;
-              "main") # Assumindo que push para main ainda deve ir para hml por padrão
-                echo "ENVIRONMENT=hml" >> "$GITHUB_ENV"
+              "main")
+                echo "ENVIRONMENT=prd" >> "$GITHUB_ENV"
                 ;;
               "prd")
                 echo "ENVIRONMENT=prd" >> "$GITHUB_ENV"
                 ;;
               *)
-                echo "ENVIRONMENT=hml" >> "$GITHUB_ENV" # Fallback para hml se o branch não for reconhecido
+                echo "ENVIRONMENT=hml" >> "$GITHUB_ENV"
                 ;;
             esac
           fi
-        # O ambiente determinado estará disponível como ${{ env.ENVIRONMENT }} nos passos seguintes
 
-      # Passo 1: Checkout do repositório aura-infra (Branch main)
+      # Passo 1: Checkout do repositório aura-infra
       - name: Checkout Infra Code
         uses: actions/checkout@v4
         with:
           ref: main
 
-      # Passo 2: Criar o arquivo secrets.env dinamicamente com os GitHub Secrets
+      # Passo 2: Criar o arquivo secrets.env dinamicamente
       - name: Create secrets.env file
         run: |
           echo "KC_DB_PASSWORD=${{ secrets.KC_DB_PASSWORD }}" >> docker/${{ env.ENVIRONMENT }}/secrets.env
@@ -81,7 +78,17 @@ jobs:
           cat docker/${{ env.ENVIRONMENT }}/.env
         working-directory: ${{ github.workspace }}
 
-      # Passo 3: Deploy da Infraestrutura Base (Utilizando mapeamento explícito de ambiente)
+      # NOVO PASSO: Derrubar a infraestrutura anterior do ambiente
+      - name: Tear Down Previous Infra Stack
+        run: |
+          docker compose \
+            --env-file docker/${{ env.ENVIRONMENT }}/.env \
+            --env-file docker/${{ env.ENVIRONMENT }}/secrets.env \
+            -f docker/${{ env.ENVIRONMENT }}/docker-compose.yml \
+            down --remove-orphans
+        continue-on-error: true # Permite que o workflow continue mesmo se não houver containers para derrubar
+
+      # Passo 3: Deploy da Infraestrutura Base
       - name: Deploy Infra Stack
         run: |
           docker compose \
@@ -95,7 +102,7 @@ jobs:
         if: always()
         run: rm docker/${{ env.ENVIRONMENT }}/secrets.env
 
-      # Passo 5: Limpeza de imagens e builders órfãos para economizar espaço
+      # Passo 5: Limpeza de imagens e builders órfãos
       - name: Clean up Docker resources
         run: |
           docker image prune -f
