@@ -4,12 +4,6 @@
 docker/*/data/
 *.log
 
-# Environments / Secrets
-# Onde ficarão suas senhas do Keycloak e DB
-docker/dev/.env
-docker/hml/.env
-docker/prd/.env
-
 # Java / Maven / Gradle
 target/
 build/
