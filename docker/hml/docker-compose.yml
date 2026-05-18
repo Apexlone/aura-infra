@@ -163,6 +163,40 @@ services:
       retries: 5
       start_period: 10s
 
+  # --- MINIO OBJECT STORAGE (S3 COMPATIBLE) ---
+  minio:
+    env_file:
+      - ./.env
+      - ./secrets.env
+    image: minio/minio:latest
+    container_name: auraskill-minio
+    restart: always
+    ports:
+      - "${MINIO_PORT}:${MINIO_INTERNAL_PORT}"
+      - "${MINIO_CONSOLE_PORT}:${MINIO_CONSOLE_INTERNAL_PORT}"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - ${MINIO_VOL_PATH}:/data
+    networks:
+      - auraskill-network
+    command: server /data --console-address ":${MINIO_CONSOLE_INTERNAL_PORT}"
+    entrypoint: >
+      sh -c "
+      minio server /data --console-address ':9001' &
+      MINIO_PID=\$!
+      until curl -s http://localhost:9000/minio/health/live; do sleep 1; done
+      mkdir -p /data/${MINIO_DEFAULT_BUCKETS}
+      wait \$MINIO_PID
+      "
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:${MINIO_INTERNAL_PORT}/minio/health/live || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
   # --- EUREKA SERVER ---
   aura-eureka:
     env_file:
@@ -222,6 +256,11 @@ services:
       - SPRING_DATA_REDIS_PORT=${REDIS_PORT}
       - SPRING_DATA_REDIS_PASSWORD=${REDIS_PASSWORD}
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://auraskill-eureka:${EUREKA_PORT}/eureka
+      - AWS_ACCESS_KEY_ID=${MINIO_ROOT_USER}
+      - AWS_SECRET_ACCESS_KEY=${MINIO_ROOT_PASSWORD}
+      - AWS_S3_ENDPOINT=http://auraskill-minio:9000
+      - AWS_S3_BUCKET_NAME=${MINIO_DEFAULT_BUCKETS}
+      - AWS_REGION=us-east-1
     depends_on:
       db-app:
         condition: service_healthy
@@ -230,6 +269,8 @@ services:
       auraskill-redis:
         condition: service_healthy
       aura-eureka:
+        condition: service_healthy
+      minio:
         condition: service_healthy
     networks:
       - auraskill-network

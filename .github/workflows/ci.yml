@@ -27,6 +27,7 @@ jobs:
           echo "KEYCLOAK_CLIENT_SECRET=${{ secrets.KEYCLOAK_CLIENT_SECRET }}" >> docker/hml/secrets.env
           echo "NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET }}" >> docker/hml/secrets.env
           echo "SONAR_DB_PASSWORD=${{ secrets.SONAR_DB_PASSWORD }}" >> docker/hml/secrets.env
+          echo "MINIO_ROOT_PASSWORD=${{ secrets.MINIO_ROOT_PASSWORD }}" >> docker/hml/secrets.env
 
       # Passo de Depuração: Verificar o arquivo .env
       - name: Debug .env file
@@ -44,7 +45,7 @@ jobs:
             --env-file docker/hml/.env \
             --env-file docker/hml/secrets.env \
             -f docker/hml/docker-compose.yml \
-            up -d db-app db-keycloak keycloak auraskill-redis db-sonarqube sonarqube
+            up -d db-app db-keycloak keycloak auraskill-redis db-sonarqube sonarqube minio
 
       # Passo 4: Limpeza do arquivo secrets.env temporário
       - name: Clean up secrets.env file
