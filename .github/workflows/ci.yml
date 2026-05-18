@@ -37,7 +37,7 @@ jobs:
           cat docker/hml/.env
         working-directory: ${{ github.workspace }}
 
-      # Passo 3: Deploy da Infraestrutura Base (Corrigido com injeção explícita de ambiente)
+      # Passo 3: Deploy da Infraestrutura Base (Utilizando mapeamento explícito de ambiente)
       - name: Deploy Infra Stack
         run: |
           docker compose \

@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # --- BANCO DE DADOS (Para a Aplicação Java) ---
   db-app:
@@ -128,9 +126,9 @@ services:
         soft: 65536
         hard: 65536
     volumes:
-      - ${SONAR_DATA_VOL_PATH}:/opt/sonarqube/data
-      - ${SONAR_EXT_VOL_PATH}:/opt/sonarqube/extensions
-      - ${SONAR_LOGS_VOL_PATH}:/opt/sonarqube/logs
+      - auraskill-sonar-data:/opt/sonarqube/data
+      - auraskill-sonar-extensions:/opt/sonarqube/extensions
+      - auraskill-sonar-logs:/opt/sonarqube/logs
     depends_on:
       db-sonarqube:
         condition: service_healthy
@@ -319,3 +317,9 @@ services:
 networks:
   auraskill-network:
     driver: bridge
+
+# --- ESPECIFICAÇÃO DOS NAMED VOLUMES DO SONAR ---
+volumes:
+  auraskill-sonar-data:
+  auraskill-sonar-extensions:
+  auraskill-sonar-logs:
