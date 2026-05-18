@@ -1,12 +1,9 @@
-version: '3.8'
-
-env_file:
-  - .env
-  - secrets.env
-
 services:
   # --- BANCO DE DADOS (Para a Aplicação Java) ---
   db-app:
+    env_file:
+      - ./.env
+      - ./secrets.env
     image: postgres:16-alpine
     container_name: auraskill-db-app
     restart: always
@@ -29,6 +26,9 @@ services:
 
   # --- BANCO DE DADOS (Para o Keycloak) ---
   db-keycloak:
+    env_file:
+      - ./.env
+      - ./secrets.env
     image: postgres:16-alpine
     container_name: auraskill-db-keycloak
     restart: always
@@ -49,8 +49,36 @@ services:
       retries: 5
       start_period: 10s
 
+  # --- BANCO DE DADOS (Para o SonarQube) ---
+  db-sonarqube:
+    env_file:
+      - ./.env
+      - ./secrets.env
+    image: postgres:16-alpine
+    container_name: auraskill-db-sonarqube
+    restart: always
+    environment:
+      POSTGRES_USER: ${SONAR_DB_USER}
+      POSTGRES_PASSWORD: ${SONAR_DB_PASSWORD}
+      POSTGRES_DB: ${SONAR_DB_NAME}
+    ports:
+      - "${SONAR_DB_PORT}:${SONAR_DB_INTERNAL_PORT}"
+    volumes:
+      - ${DB_SONAR_VOL_PATH}:/var/lib/postgresql/data
+    networks:
+      - auraskill-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${SONAR_DB_USER} -d ${SONAR_DB_NAME}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
   # --- SERVIÇO KEYCLOAK ---
   keycloak:
+    env_file:
+      - ./.env
+      - ./secrets.env
     image: quay.io/keycloak/keycloak:latest
     container_name: auraskill-keycloak
     restart: always
@@ -79,8 +107,45 @@ services:
       retries: 5
       start_period: 30s
 
+  # --- SERVIÇO SONARQUBE ---
+  sonarqube:
+    env_file:
+      - ./.env
+      - ./secrets.env
+    image: sonarqube:community
+    container_name: auraskill-sonarqube
+    restart: always
+    environment:
+      SONAR_JDBC_USERNAME: ${SONAR_DB_USER}
+      SONAR_JDBC_PASSWORD: ${SONAR_DB_PASSWORD}
+      SONAR_JDBC_URL: jdbc:postgresql://auraskill-db-sonarqube:${SONAR_DB_INTERNAL_PORT}/${SONAR_DB_NAME}
+    ports:
+      - "${SONAR_PORT}:${SONAR_INTERNAL_PORT}"
+    ulimits:
+      nofile:
+        soft: 65536
+        hard: 65536
+    volumes:
+      - auraskill-sonar-data:/opt/sonarqube/data
+      - auraskill-sonar-extensions:/opt/sonarqube/extensions
+      - auraskill-sonar-logs:/opt/sonarqube/logs
+    depends_on:
+      db-sonarqube:
+        condition: service_healthy
+    networks:
+      - auraskill-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:${SONAR_INTERNAL_PORT}/api/system/status || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+
   # --- REDIS CACHE SERVER ---
   auraskill-redis:
+    env_file:
+      - ./.env
+      - ./secrets.env
     image: redis:7-alpine
     container_name: auraskill-redis
     restart: always
@@ -98,8 +163,45 @@ services:
       retries: 5
       start_period: 10s
 
+  # --- MINIO OBJECT STORAGE (S3 COMPATIBLE) ---
+  minio:
+    env_file:
+      - ./.env
+      - ./secrets.env
+    image: minio/minio:latest
+    container_name: auraskill-minio
+    restart: always
+    ports:
+      - "${MINIO_PORT}:${MINIO_INTERNAL_PORT}"
+      - "${MINIO_CONSOLE_PORT}:${MINIO_CONSOLE_INTERNAL_PORT}"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - ${MINIO_VOL_PATH}:/data
+    networks:
+      - auraskill-network
+    command: server /data --console-address ":${MINIO_CONSOLE_INTERNAL_PORT}"
+    entrypoint: >
+      sh -c "
+      minio server /data --console-address ':${MINIO_CONSOLE_INTERNAL_PORT}' & 
+      MINIO_PID=\$!; 
+      while ! curl -s http://localhost:${MINIO_INTERNAL_PORT}/minio/health/live; do sleep 1; done; 
+      mkdir -p /data/${MINIO_DEFAULT_BUCKETS}; 
+      wait \$MINIO_PID;
+      "
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:${MINIO_INTERNAL_PORT}/minio/health/live || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
   # --- EUREKA SERVER ---
   aura-eureka:
+    env_file:
+      - ./.env
+      - ./secrets.env
     build:
       context: ${AURA_EUREKA_PATH}
       dockerfile: Dockerfile
@@ -128,6 +230,9 @@ services:
 
   # --- BACKEND API (Spring Boot) ---
   auraskill-api:
+    env_file:
+      - ./.env
+      - ./secrets.env
     build:
       context: ${AURA_API_PATH}
       dockerfile: Dockerfile
@@ -151,6 +256,11 @@ services:
       - SPRING_DATA_REDIS_PORT=${REDIS_PORT}
       - SPRING_DATA_REDIS_PASSWORD=${REDIS_PASSWORD}
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://auraskill-eureka:${EUREKA_PORT}/eureka
+      - AWS_ACCESS_KEY_ID=${MINIO_ROOT_USER}
+      - AWS_SECRET_ACCESS_KEY=${MINIO_ROOT_PASSWORD}
+      - AWS_S3_ENDPOINT=http://auraskill-minio:9000
+      - AWS_S3_BUCKET_NAME=${MINIO_DEFAULT_BUCKETS}
+      - AWS_REGION=us-east-1
     depends_on:
       db-app:
         condition: service_healthy
@@ -159,6 +269,8 @@ services:
       auraskill-redis:
         condition: service_healthy
       aura-eureka:
+        condition: service_healthy
+      minio:
         condition: service_healthy
     networks:
       - auraskill-network
@@ -173,6 +285,9 @@ services:
 
   # --- API GATEWAY ---
   aura-gateway:
+    env_file:
+      - ./.env
+      - ./secrets.env
     build:
       context: ${AURA_GATEWAY_PATH}
       dockerfile: Dockerfile
@@ -203,6 +318,9 @@ services:
 
   # --- FRONTEND (Next.js) ---
   auraskill-frontend:
+    env_file:
+      - ./.env
+      - ./secrets.env
     build:
       context: ${AURA_FRONT_PATH}
       dockerfile: Dockerfile
@@ -240,3 +358,9 @@ services:
 networks:
   auraskill-network:
     driver: bridge
+
+# --- ESPECIFICAÇÃO DOS NAMED VOLUMES DO SONAR ---
+volumes:
+  auraskill-sonar-data:
+  auraskill-sonar-extensions:
+  auraskill-sonar-logs:

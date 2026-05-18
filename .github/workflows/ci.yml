@@ -4,6 +4,20 @@ on:
   push:
     branches:
       - main
+      - dev
+      - hml
+      - prd # Adicionado os branches para disparar no push
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy (dev, hml, prd)'
+        required: true
+        default: 'hml'
+        type: choice
+        options:
+          - dev
+          - hml
+          - prd
 
 jobs:
   deploy:
@@ -11,6 +25,35 @@ jobs:
     runs-on: self-hosted
 
     steps:
+      # Passo 0: Determinar o ambiente com base no gatilho
+      - name: Determine Environment
+        id: set_environment
+        run: |
+          # Se o workflow foi disparado manualmente, use o input do usuário
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "ENVIRONMENT=${{ github.event.inputs.environment }}" >> "$GITHUB_ENV"
+          # Se foi disparado por push, determine o ambiente pelo nome do branch
+          else
+            case "${{ github.ref_name }}" in
+              "dev")
+                echo "ENVIRONMENT=dev" >> "$GITHUB_ENV"
+                ;;
+              "hml")
+                echo "ENVIRONMENT=hml" >> "$GITHUB_ENV"
+                ;;
+              "main") # Assumindo que push para main ainda deve ir para hml por padrão
+                echo "ENVIRONMENT=hml" >> "$GITHUB_ENV"
+                ;;
+              "prd")
+                echo "ENVIRONMENT=prd" >> "$GITHUB_ENV"
+                ;;
+              *)
+                echo "ENVIRONMENT=hml" >> "$GITHUB_ENV" # Fallback para hml se o branch não for reconhecido
+                ;;
+            esac
+          fi
+        # O ambiente determinado estará disponível como ${{ env.ENVIRONMENT }} nos passos seguintes
+
       # Passo 1: Checkout do repositório aura-infra (Branch main)
       - name: Checkout Infra Code
         uses: actions/checkout@v4
@@ -20,37 +63,37 @@ jobs:
       # Passo 2: Criar o arquivo secrets.env dinamicamente com os GitHub Secrets
       - name: Create secrets.env file
         run: |
-          echo "KC_DB_PASSWORD=${{ secrets.KC_DB_PASSWORD }}" >> docker/hml/secrets.env
-          echo "KC_ADMIN_PASSWORD=${{ secrets.KC_ADMIN_PASSWORD }}" >> docker/hml/secrets.env
-          echo "APP_DB_PASSWORD=${{ secrets.APP_DB_PASSWORD }}" >> docker/hml/secrets.env
-          echo "REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}" >> docker/hml/secrets.env
-          echo "KEYCLOAK_CLIENT_SECRET=${{ secrets.KEYCLOAK_CLIENT_SECRET }}" >> docker/hml/secrets.env
-          echo "NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET }}" >> docker/hml/secrets.env
-          echo "SONAR_DB_PASSWORD=${{ secrets.SONAR_DB_PASSWORD }}" >> docker/hml/secrets.env
-          echo "MINIO_ROOT_PASSWORD=${{ secrets.MINIO_ROOT_PASSWORD }}" >> docker/hml/secrets.env
+          echo "KC_DB_PASSWORD=${{ secrets.KC_DB_PASSWORD }}" >> docker/${{ env.ENVIRONMENT }}/secrets.env
+          echo "KC_ADMIN_PASSWORD=${{ secrets.KC_ADMIN_PASSWORD }}" >> docker/${{ env.ENVIRONMENT }}/secrets.env
+          echo "APP_DB_PASSWORD=${{ secrets.APP_DB_PASSWORD }}" >> docker/${{ env.ENVIRONMENT }}/secrets.env
+          echo "REDIS_PASSWORD=${{ secrets.REDIS_PASSWORD }}" >> docker/${{ env.ENVIRONMENT }}/secrets.env
+          echo "KEYCLOAK_CLIENT_SECRET=${{ secrets.KEYCLOAK_CLIENT_SECRET }}" >> docker/${{ env.ENVIRONMENT }}/secrets.env
+          echo "NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET }}" >> docker/${{ env.ENVIRONMENT }}/secrets.env
+          echo "SONAR_DB_PASSWORD=${{ secrets.SONAR_DB_PASSWORD }}" >> docker/${{ env.ENVIRONMENT }}/secrets.env
+          echo "MINIO_ROOT_PASSWORD=${{ secrets.MINIO_ROOT_PASSWORD }}" >> docker/${{ env.ENVIRONMENT }}/secrets.env
 
       # Passo de Depuração: Verificar o arquivo .env
       - name: Debug .env file
         run: |
-          echo "Listing contents of docker/hml/:"
-          ls -la docker/hml/
-          echo "Content of docker/hml/.env:"
-          cat docker/hml/.env
+          echo "Listing contents of docker/${{ env.ENVIRONMENT }}/:"
+          ls -la docker/${{ env.ENVIRONMENT }}/
+          echo "Content of docker/${{ env.ENVIRONMENT }}/.env:"
+          cat docker/${{ env.ENVIRONMENT }}/.env
         working-directory: ${{ github.workspace }}
 
       # Passo 3: Deploy da Infraestrutura Base (Utilizando mapeamento explícito de ambiente)
       - name: Deploy Infra Stack
         run: |
           docker compose \
-            --env-file docker/hml/.env \
-            --env-file docker/hml/secrets.env \
-            -f docker/hml/docker-compose.yml \
+            --env-file docker/${{ env.ENVIRONMENT }}/.env \
+            --env-file docker/${{ env.ENVIRONMENT }}/secrets.env \
+            -f docker/${{ env.ENVIRONMENT }}/docker-compose.yml \
             up -d db-app db-keycloak keycloak auraskill-redis db-sonarqube sonarqube minio
 
       # Passo 4: Limpeza do arquivo secrets.env temporário
       - name: Clean up secrets.env file
         if: always()
-        run: rm docker/hml/secrets.env
+        run: rm docker/${{ env.ENVIRONMENT }}/secrets.env
 
       # Passo 5: Limpeza de imagens e builders órfãos para economizar espaço
       - name: Clean up Docker resources
