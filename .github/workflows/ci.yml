@@ -3,9 +3,7 @@ name: Infra Deploy
 on:
   push:
     branches:
-      - dev
       - hml
-      - main
       - prd
   workflow_dispatch:
     inputs:
@@ -15,7 +13,6 @@ on:
         default: 'hml'
         type: choice
         options:
-          - dev
           - hml
           - prd
 
