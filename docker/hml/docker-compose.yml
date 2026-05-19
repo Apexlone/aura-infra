@@ -163,7 +163,7 @@ services:
       retries: 5
       start_period: 10s
 
-  # --- MINIO OBJECT STORAGE (S3 COMPATIBLE) ---
+  # --- MINIO (S3 COMPATIBLE) ---
   minio:
     env_file:
       - ./.env
@@ -182,20 +182,30 @@ services:
     networks:
       - auraskill-network
     command: server /data --console-address ":${MINIO_CONSOLE_INTERNAL_PORT}"
-    entrypoint: >
-      sh -c "
-      minio server /data --console-address ':${MINIO_CONSOLE_INTERNAL_PORT}' & 
-      MINIO_PID=\$\!; 
-      while ! curl -s http://localhost:${MINIO_INTERNAL_PORT}/minio/health/live; do sleep 1; done; 
-      mkdir -p /data/${MINIO_DEFAULT_BUCKETS}; 
-      wait \$\${MINIO_PID};
-      "
     healthcheck:
       test: ["CMD-SHELL", "curl -f http://localhost:${MINIO_INTERNAL_PORT}/minio/health/live || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
       start_period: 10s
+
+  # --- PROVEDOR DE BUCKETS (Cria o bucket e desliga automaticamente) ---
+  minio-create-buckets:
+    image: minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_healthy
+    networks:
+      - auraskill-network
+    env_file:
+      - ./.env
+      - ./secrets.env
+    entrypoint: >
+      sh -c "
+      mc alias set localminio http://minio:${MINIO_INTERNAL_PORT} ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD};
+      mc mb localminio/${MINIO_DEFAULT_BUCKETS} --ignore-existing;
+      exit 0;
+      "
 
   # --- EUREKA SERVER ---
   aura-eureka:
