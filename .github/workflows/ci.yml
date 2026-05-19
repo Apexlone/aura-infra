@@ -30,14 +30,8 @@ jobs:
             echo "ENVIRONMENT=${{ github.event.inputs.environment }}" >> "$GITHUB_ENV"
           else
             case "${{ github.ref_name }}" in
-              "dev")
-                echo "ENVIRONMENT=dev" >> "$GITHUB_ENV"
-                ;;
               "hml")
                 echo "ENVIRONMENT=hml" >> "$GITHUB_ENV"
-                ;;
-              "main")
-                echo "ENVIRONMENT=prd" >> "$GITHUB_ENV"
                 ;;
               "prd")
                 echo "ENVIRONMENT=prd" >> "$GITHUB_ENV"
@@ -48,11 +42,9 @@ jobs:
             esac
           fi
 
-      # Passo 1: Checkout do repositório aura-infra
+      # Passo 1: Checkout dinâmico (Usa a branch que disparou a pipeline)
       - name: Checkout Infra Code
         uses: actions/checkout@v4
-        with:
-          ref: main
 
       # Passo 2: Criar o arquivo secrets.env dinamicamente
       - name: Create secrets.env file
@@ -97,7 +89,7 @@ jobs:
       # Passo 4: Limpeza do arquivo secrets.env temporário
       - name: Clean up secrets.env file
         if: always()
-        run: rm docker/${{ env.ENVIRONMENT }}/secrets.env
+        run: rm -f docker/${{ env.ENVIRONMENT }}/secrets.env
 
       # Passo 5: Limpeza de imagens e builders órfãos
       - name: Clean up Docker resources
