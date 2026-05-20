@@ -82,11 +82,18 @@ jobs:
       - name: Deploy Infra Stack
         working-directory: docker/${{ env.ENVIRONMENT }}
         run: |
+          # Cria um link temporário para enganar o mecanismo do include do docker
+          ln -s .env ../common/.env
+          ln -s secrets.env ../common/secrets.env
+          
           docker compose \
             --env-file .env \
             --env-file secrets.env \
             -f docker-compose.yml \
             up -d
+          
+          # Remove os links após o deploy
+          rm -f ../common/.env ../common/secrets.env
 
       # Passo 4: Limpeza do arquivo secrets.env temporário
       - name: Clean up secrets.env file
