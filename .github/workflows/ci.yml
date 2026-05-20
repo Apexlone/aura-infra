@@ -69,22 +69,26 @@ jobs:
 
       # Derrubar a infraestrutura anterior do ambiente
       - name: Tear Down Previous Infra Stack
+        working-directory: docker/${{ env.ENVIRONMENT }}
         run: |
           docker compose \
-            --env-file docker/${{ env.ENVIRONMENT }}/.env \
-            --env-file docker/${{ env.ENVIRONMENT }}/secrets.env \
-            -f docker/${{ env.ENVIRONMENT }}/docker-compose.yml \
+            --env-file .env \
+            --env-file secrets.env \
+            -f ../common/docker-compose.base.yml \
+            -f docker-compose.yml \
             down --remove-orphans
         continue-on-error: true
 
       # Passo 3: Deploy da Infraestrutura Base
       - name: Deploy Infra Stack
+        working-directory: docker/${{ env.ENVIRONMENT }}
         run: |
           docker compose \
-            --env-file docker/${{ env.ENVIRONMENT }}/.env \
-            --env-file docker/${{ env.ENVIRONMENT }}/secrets.env \
-            -f docker/${{ env.ENVIRONMENT }}/docker-compose.yml \
-            up -d db-app db-keycloak keycloak auraskill-redis db-sonarqube sonarqube minio
+            --env-file .env \
+            --env-file secrets.env \
+            -f ../common/docker-compose.base.yml \
+            -f docker-compose.yml \
+            up -d
 
       # Passo 4: Limpeza do arquivo secrets.env temporário
       - name: Clean up secrets.env file
