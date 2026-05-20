@@ -55,7 +55,7 @@ services:
       POSTGRES_PASSWORD: ${SONAR_DB_PASSWORD}
       POSTGRES_DB: ${SONAR_DB_NAME}
     ports:
-      - "${SONAR_PORT}:${SONAR_DB_INTERNAL_PORT}"
+      - "${SONAR_DB_PORT}:${SONAR_DB_INTERNAL_PORT}"
     volumes:
       - ${DB_SONAR_VOL_PATH}:/var/lib/postgresql/data
     networks:
