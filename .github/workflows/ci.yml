@@ -71,6 +71,7 @@ jobs:
       - name: Tear Down Previous Infra Stack
         run: |
           docker compose \
+            --project-directory docker/${{ env.ENVIRONMENT }} \
             --env-file docker/${{ env.ENVIRONMENT }}/.env \
             --env-file docker/${{ env.ENVIRONMENT }}/secrets.env \
             -f docker/${{ env.ENVIRONMENT }}/docker-compose.yml \
@@ -81,10 +82,11 @@ jobs:
       - name: Deploy Infra Stack
         run: |
           docker compose \
+            --project-directory docker/${{ env.ENVIRONMENT }} \
             --env-file docker/${{ env.ENVIRONMENT }}/.env \
             --env-file docker/${{ env.ENVIRONMENT }}/secrets.env \
             -f docker/${{ env.ENVIRONMENT }}/docker-compose.yml \
-            up -d db-app db-keycloak keycloak auraskill-redis db-sonarqube sonarqube minio
+            up -d
 
       # Passo 4: Limpeza do arquivo secrets.env temporário
       - name: Clean up secrets.env file
