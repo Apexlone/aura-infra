@@ -1,9 +1,8 @@
+version: '3.8'
+
 services:
   # --- BANCO DE DADOS (Para a Aplicação Java) ---
   db-app:
-    env_file:
-      - ./.env
-      - ./secrets.env
     image: postgres:16-alpine
     container_name: auraskill-db-app-${ENV_NAME}
     restart: always
@@ -26,9 +25,6 @@ services:
 
   # --- BANCO DE DADOS (Para o Keycloak) ---
   db-keycloak:
-    env_file:
-      - ./.env
-      - ./secrets.env
     image: postgres:16-alpine
     container_name: auraskill-db-keycloak-${ENV_NAME}
     restart: always
@@ -51,9 +47,6 @@ services:
 
   # --- BANCO DE DADOS (Para o SonarQube) ---
   db-sonarqube:
-    env_file:
-      - ./.env
-      - ./secrets.env
     image: postgres:16-alpine
     container_name: auraskill-db-sonarqube-${ENV_NAME}
     restart: always
@@ -62,7 +55,7 @@ services:
       POSTGRES_PASSWORD: ${SONAR_DB_PASSWORD}
       POSTGRES_DB: ${SONAR_DB_NAME}
     ports:
-      - "${SONAR_DB_PORT}:${SONAR_DB_INTERNAL_PORT}"
+      - "${SONAR_PORT}:${SONAR_DB_INTERNAL_PORT}"
     volumes:
       - ${DB_SONAR_VOL_PATH}:/var/lib/postgresql/data
     networks:
@@ -76,9 +69,6 @@ services:
 
   # --- SERVIÇO KEYCLOAK ---
   keycloak:
-    env_file:
-      - ./.env
-      - ./secrets.env
     image: quay.io/keycloak/keycloak:latest
     container_name: auraskill-keycloak-${ENV_NAME}
     restart: always
@@ -109,9 +99,6 @@ services:
 
   # --- SERVIÇO SONARQUBE ---
   sonarqube:
-    env_file:
-      - ./.env
-      - ./secrets.env
     image: sonarqube:community
     container_name: auraskill-sonarqube-${ENV_NAME}
     restart: always
@@ -143,9 +130,6 @@ services:
 
   # --- REDIS CACHE SERVER ---
   auraskill-redis:
-    env_file:
-      - ./.env
-      - ./secrets.env
     image: redis:7-alpine
     container_name: auraskill-redis-${ENV_NAME}
     restart: always
@@ -165,9 +149,6 @@ services:
 
   # --- MINIO (S3 COMPATIBLE) ---
   minio:
-    env_file:
-      - ./.env
-      - ./secrets.env
     image: minio/minio:latest
     container_name: auraskill-minio-${ENV_NAME}
     restart: always
@@ -189,29 +170,24 @@ services:
       retries: 5
       start_period: 10s
 
-  # --- PROVEDOR DE BUCKETS (Cria o bucket e desliga automaticamente) ---
+  # --- PROVEDOR DE BUCKETS ---
   minio-create-buckets:
     image: minio/mc:latest
+    container_name: auraskill-minio-buckets-${ENV_NAME}
     depends_on:
       minio:
         condition: service_healthy
     networks:
       - auraskill-network
-    env_file:
-      - ./.env
-      - ./secrets.env
     entrypoint: >
       sh -c "
-      mc alias set localminio http://minio:${MINIO_INTERNAL_PORT} ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD};
+      mc alias set localminio http://auraskill-minio-${ENV_NAME}:${MINIO_INTERNAL_PORT} ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD};
       mc mb localminio/${MINIO_DEFAULT_BUCKETS} --ignore-existing;
       exit 0;
       "
 
   # --- EUREKA SERVER ---
   aura-eureka:
-    env_file:
-      - ./.env
-      - ./secrets.env
     build:
       context: ${AURA_EUREKA_PATH}
       dockerfile: Dockerfile
@@ -240,9 +216,6 @@ services:
 
   # --- BACKEND API (Spring Boot) ---
   auraskill-api:
-    env_file:
-      - ./.env
-      - ./secrets.env
     build:
       context: ${AURA_API_PATH}
       dockerfile: Dockerfile
@@ -252,7 +225,7 @@ services:
       - "${API_PORT}:${API_INTERNAL_PORT}"
     environment:
       - SPRING_APPLICATION_NAME=${SPRING_APPLICATION_NAME}
-      - SERVER_PORT=${API_PORT}
+      - SERVER_PORT=${API_INTERNAL_PORT}
       - SPRING_DATASOURCE_URL=jdbc:postgresql://auraskill-db-app-${ENV_NAME}:${APP_DB_INTERNAL_PORT}/${APP_DB_NAME}
       - SPRING_DATASOURCE_USERNAME=${APP_DB_USER}
       - SPRING_DATASOURCE_PASSWORD=${APP_DB_PASSWORD}
@@ -263,12 +236,12 @@ services:
       - SPRING_FLYWAY_ENABLED=${SPRING_FLYWAY_ENABLED}
       - SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUER_URI=${KEYCLOAK_ISSUER_URI}
       - SPRING_DATA_REDIS_HOST=auraskill-redis-${ENV_NAME}
-      - SPRING_DATA_REDIS_PORT=${REDIS_PORT}
+      - SPRING_DATA_REDIS_PORT=${REDIS_INTERNAL_PORT}
       - SPRING_DATA_REDIS_PASSWORD=${REDIS_PASSWORD}
-      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://auraskill-eureka-${ENV_NAME}:${EUREKA_PORT}/eureka
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://auraskill-eureka-${ENV_NAME}:${EUREKA_INTERNAL_PORT}/eureka
       - AWS_ACCESS_KEY_ID=${MINIO_ROOT_USER}
       - AWS_SECRET_ACCESS_KEY=${MINIO_ROOT_PASSWORD}
-      - AWS_S3_ENDPOINT=http://auraskill-minio-${ENV_NAME}:9000
+      - AWS_S3_ENDPOINT=http://auraskill-minio-${ENV_NAME}:${MINIO_INTERNAL_PORT}
       - AWS_S3_BUCKET_NAME=${MINIO_DEFAULT_BUCKETS}
       - AWS_REGION=us-east-1
     depends_on:
@@ -295,9 +268,6 @@ services:
 
   # --- API GATEWAY ---
   aura-gateway:
-    env_file:
-      - ./.env
-      - ./secrets.env
     build:
       context: ${AURA_GATEWAY_PATH}
       dockerfile: Dockerfile
@@ -309,7 +279,7 @@ services:
       - SPRING_APPLICATION_NAME=aura-gateway
       - SERVER_PORT=${GATEWAY_INTERNAL_PORT}
       - MANAGEMENT_ENDPOINT_HEALTH_SHOWDETAILS=always
-      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://auraskill-eureka-${ENV_NAME}:${EUREKA_PORT}/eureka
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://auraskill-eureka-${ENV_NAME}:${EUREKA_INTERNAL_PORT}/eureka
     depends_on:
       aura-eureka:
         condition: service_healthy
@@ -328,9 +298,6 @@ services:
 
   # --- FRONTEND (Next.js) ---
   auraskill-frontend:
-    env_file:
-      - ./.env
-      - ./secrets.env
     build:
       context: ${AURA_FRONT_PATH}
       dockerfile: Dockerfile
@@ -346,7 +313,7 @@ services:
       - NEXTAUTH_URL=${NEXTAUTH_URL}
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
       - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}
-      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://auraskill-eureka-${ENV_NAME}:${EUREKA_PORT}/eureka
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://auraskill-eureka-${ENV_NAME}:${EUREKA_INTERNAL_PORT}/eureka
     depends_on:
       keycloak:
         condition: service_healthy
@@ -369,7 +336,6 @@ networks:
   auraskill-network:
     driver: bridge
 
-# --- ESPECIFICAÇÃO DOS NAMED VOLUMES DO SONAR ---
 volumes:
   auraskill-sonar-data:
   auraskill-sonar-extensions:

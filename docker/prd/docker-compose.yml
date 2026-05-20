@@ -1,7 +1,5 @@
-# Em: docker/hml/docker-compose.yml (e também no de prd)
-env_file:
-  - .env
-  - secrets.env
+version: '3.8'
 
-include:
-  - path: ../common/docker-compose.base.yml
+# Mantido limpo intencionalmente.
+# A pipeline vai mesclar este escopo com o arquivo base nativamente.
+services: {}
